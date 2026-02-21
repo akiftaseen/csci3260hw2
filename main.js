@@ -21,6 +21,7 @@ let pipeline;
 let projectionMatrix;
 let viewMatrix;
 let depthTexture;
+let activeCameraView = "iso";
 
 let meshes = {};
 let renderableObjects = [];
@@ -257,12 +258,28 @@ function generateScaledScene(baseBricks) {
   const bricksOnly = baseBricks.filter((b) => b.brick_id !== "0");
   const baseplate = baseBricks.find((b) => b.brick_id === "0");
 
+  let maxGridX = 0;
+  let maxGridZ = 0;
+  let maxGridY = 0;
+
+  for (const brick of bricksOnly) {
+    const dims = brickDimensions[brick.brick_id] || [2, 2];
+    const isRotatedToZ = brick.rotation === 0;
+    const spanX = isRotatedToZ ? dims[1] : dims[0];
+    const spanZ = isRotatedToZ ? dims[0] : dims[1];
+
+    maxGridX = Math.max(maxGridX, brick.position[0] + spanX);
+    maxGridZ = Math.max(maxGridZ, brick.position[1] + spanZ);
+    maxGridY = Math.max(maxGridY, brick.position[2] + 1);
+  }
+
+  const stepX = Math.max(1, maxGridX);
+  const stepZ = Math.max(1, maxGridZ);
+  const stepY = Math.max(1, maxGridY);
+
   if (baseplate) {
     generated.push(baseplate);
   }
-
-  const sceneFootprintX = 50;
-  const sceneFootprintZ = 50;
 
   for (let hx = 0; hx < width; hx++) {
     for (let dz = 0; dz < depth; dz++) {
@@ -271,9 +288,9 @@ function generateScaledScene(baseBricks) {
           generated.push({
             ...brick,
             position: [
-              brick.position[0] + hx * sceneFootprintX,
-              brick.position[1] + dz * sceneFootprintZ,
-              brick.position[2] + vy * 3,
+              brick.position[0] + hx * stepX,
+              brick.position[1] + dz * stepZ,
+              brick.position[2] + vy * stepY,
             ],
           });
         }
@@ -389,14 +406,15 @@ function rebuildRenderableObjects() {
     maxZ: maxZScene,
   };
 
-  setCameraView("iso");
+  setCameraView(activeCameraView);
   setStatus(`Loaded ${renderableObjects.length} bricks from ${sceneSource.fileName}`);
 }
 
 async function reloadScene() {
   try {
     setStatus("Loading scene...");
-    const sceneData = await loadSceneData();
+    const rawSceneData = await loadSceneData();
+    const sceneData = validateSceneData(rawSceneData);
     baseSceneBricks = sceneData;
     await loadMeshesForScene(sceneData);
     rebuildRenderableObjects();
@@ -404,6 +422,45 @@ async function reloadScene() {
     console.error(error);
     setStatus(`Error: ${error.message}`);
   }
+}
+
+
+function validateSceneData(sceneData) {
+  if (!Array.isArray(sceneData)) {
+    throw new Error("Scene file must be a JSON array.");
+  }
+
+  return sceneData.map((brick, index) => {
+    if (!brick || typeof brick !== "object") {
+      throw new Error(`Brick at index ${index} must be an object.`);
+    }
+
+    if (!(brick.brick_id in brickDimensions)) {
+      throw new Error(`Unsupported brick_id \"${brick.brick_id}\" at index ${index}.`);
+    }
+
+    if (!Array.isArray(brick.color) || brick.color.length !== 3) {
+      throw new Error(`Brick ${index} color must be [r, g, b].`);
+    }
+
+    if (!Array.isArray(brick.position) || brick.position.length !== 3) {
+      throw new Error(`Brick ${index} position must be [x, z, y].`);
+    }
+
+    if (brick.rotation !== 0 && brick.rotation !== 1) {
+      throw new Error(`Brick ${index} rotation must be 0 or 1.`);
+    }
+
+    const color = brick.color.map((c) => Math.max(0, Math.min(255, Number(c) || 0)));
+    const position = brick.position.map((p) => Math.trunc(Number(p) || 0));
+
+    return {
+      brick_id: brick.brick_id,
+      color,
+      position,
+      rotation: brick.rotation,
+    };
+  });
 }
 
 function setStatus(text) {
@@ -462,6 +519,8 @@ function render() {
 }
 
 function setCameraView(type) {
+  activeCameraView = type;
+
   let cx = 200;
   let cy = 40;
   let cz = 200;
