@@ -12,18 +12,22 @@ fn main(
     @location(1) vColor : vec3<f32>,
     @location(2) vWorldPos : vec3<f32>
 ) -> @location(0) vec4<f32> {
-    // Lighting setup
-    // TODO: Define lighting direction, view position, etc.
-    // e.g. let lightDir = ...
-    
-    // TODO: Calculate Ambient component
-    
-    // TODO: Calculate Diffuse component (Lambert or similar)
-    
-    // TODO: Calculate Specular component (Blinn-Phong)
-    
-    // TODO: Combine components and return final color
-    
-    // Placeholder output (just the raw color)
-    return vec4<f32>(vColor, 1.0);
+    let normal = normalize(vNormal);
+
+    let lightDir = normalize(vec3<f32>(0.4, 1.0, 0.2));
+    let viewPos = vec3<f32>(700.0, 700.0, 700.0);
+    let viewDir = normalize(viewPos - vWorldPos);
+
+    let ambientStrength = 0.22;
+    let ambient = ambientStrength * vColor;
+
+    let diffuseFactor = max(dot(normal, lightDir), 0.0);
+    let diffuse = diffuseFactor * vColor;
+
+    let halfVector = normalize(lightDir + viewDir);
+    let specularFactor = pow(max(dot(normal, halfVector), 0.0), 42.0);
+    let specular = specularFactor * vec3<f32>(0.55, 0.55, 0.55);
+
+    let finalColor = ambient + diffuse + specular;
+    return vec4<f32>(finalColor, 1.0);
 }
