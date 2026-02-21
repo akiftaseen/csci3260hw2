@@ -7,24 +7,53 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #1a1a1a; color: white; font-family: sans-serif; }
         canvas { display: block; width: 100vw; height: 100vh; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; }
-        button { cursor: pointer; pointer-events: auto; }
+        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.78); padding: 12px; border-radius: 6px; width: 300px; }
+        #ui h1 { font-size: 1.1rem; margin: 0 0 8px 0; }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        .slider-grid { display: grid; grid-template-columns: 62px 1fr 24px; gap: 6px; align-items: center; margin-bottom: 4px; }
+        button, input[type="file"] { cursor: pointer; width: 100%; }
+        input[type="range"] { width: 100%; }
+        .subtle { font-size: 0.85rem; color: #ddd; }
     </style>
 </head>
 <body>
     <div id="ui">
         <h1>Assignment 2: LEGO Scene</h1>
-        <p>Status: <span id="status">Running</span></p>
-        <div>
-            <!-- TODO: Add buttons for view switching here -->
-            <!-- 
-            Requirements:
-            1. Front View button
-            2. Top-Down View button
-            3. Isometric View button
-            -->
+        <p>Status: <span id="status">Initializing...</span></p>
+
+        <div class="controls">
+            <button id="btn-front">Front</button>
+            <button id="btn-top">Top-Down</button>
+            <button id="btn-iso">Isometric</button>
+        </div>
+
+        <div class="actions">
+            <button id="btn-reload">Reload Scene</button>
+            <button id="btn-export">Export OBJ</button>
+        </div>
+
+        <p class="subtle">Load custom scene (.json)</p>
+        <input id="scene-file" type="file" accept="application/json,.json" />
+
+        <p class="subtle">Parametric scaling</p>
+        <div class="slider-grid">
+            <label for="scale-width">Width</label>
+            <input id="scale-width" type="range" min="1" max="3" value="1" />
+            <span id="scale-width-value">1</span>
+        </div>
+        <div class="slider-grid">
+            <label for="scale-depth">Depth</label>
+            <input id="scale-depth" type="range" min="1" max="3" value="1" />
+            <span id="scale-depth-value">1</span>
+        </div>
+        <div class="slider-grid">
+            <label for="scale-height">Height</label>
+            <input id="scale-height" type="range" min="1" max="3" value="1" />
+            <span id="scale-height-value">1</span>
         </div>
     </div>
+
     <canvas id="gpu-canvas"></canvas>
     <script type="module" src="./main.js"></script>
 </body>
